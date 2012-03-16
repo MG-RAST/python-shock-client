@@ -1,0 +1,4 @@
+dist
+ShockClient.egg-info
+build
+*.pyc
