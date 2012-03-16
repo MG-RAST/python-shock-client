@@ -22,161 +22,41 @@ def dir_type(d):
 	else:
 		return d
 
-def mtfpath_type(mtfpath):
-	if mtfpath.count("/") > 0:
-		[mtf, rest] = mtfpath.split("/", 1)
-		if mtf_type(mtf) == mtf:
-			return mtfpath
-	else:
-		return mtf_type(mtfpath)
-
-def mtf_type(mtf):
-	global MTFPATH	
-	mtfCache = loadMtf()
-	if mtfCache.has_key(mtf):
-		return mtf
-	else:
-		msg = "%s not found in MTFPATH. MTFPATH includes %s" % (mtf, MTFPATH)
-		raise argparse.ArgumentTypeError(msg)		
-
 # setup option/arg parser
-parser = argparse.ArgumentParser(prog='mtf', epilog='Use "mtf command -h" for more information about a command.')
-parser.add_argument('--MTFPATH', help='Overrules env variable MTFPATH')
+parser = argparse.ArgumentParser(prog='shock', epilog='Use "shock command -h" for more information about a command.')
+parser.add_argument('--SHOCKURL', help='Overrules env SHOCKURL')
+parser.add_argument('--SHOCKUSER', help='Overrules env SHOCKUSER')
+parser.add_argument('--SHOCKPASSWORD', help='Overrules env SHOCKPASSWORD')
 subparsers = parser.add_subparsers(dest='command', title='The commands are')
 
-# init -h
-p_init = subparsers.add_parser('init', description='Manually rebuilds cache file. Maybe useful after updates.', help='manually rebuilds cache file')
-
 # list -h
-p_list = subparsers.add_parser('list', description='Lists the mtf(s) available in MTFPATH or the contents of a mtf.', help='list available metagenomes')
-p_list.add_argument('mtfId', type=mtf_type, nargs='?',help='')
-p_list.add_argument('-p', action='store_true', help='disables pretty print for ease of parsing and use with other command line utilities')
+p_list = subparsers.add_parser('list', description='Lists the nodes in Shock.', help='list nodes')
+p_list.add_argument('-l', type=int, help='max count of nodes listed')
+p_list.add_argument('-s', type=int, help='skip N nodes')
+p_list.add_argument('-q', help='Shock query string, in the form of "tag=value[,tag2=value2,..]" see githhub.com/MG-RAST/Shock for more details.')
+# p_list.add_argument('-p', action='store_true', help='disables pretty print for ease of parsing and use with other command line utilities')
 
 # get -h
-p_get = subparsers.add_parser('get', help='get all or partial selection of a metagenome\'s files')
-p_get.add_argument('--decompress', action='store_true', help='decompress file(s)')
-p_get.add_argument('mtf', type=mtfpath_type, help='source mtf or mtf/file')
-p_get.add_argument('target_dir', type=dir_type, help='target directory to copy file(s) to')
+p_get = subparsers.add_parser('get', help='get node or node file')
+p_get.add_argument('id', help='Shock id of node')
+p_get.add_argument('target', nargs='?', type=dir_type, help='target directory of download. Only used with --download')
+p_get.add_argument('--download', action='store_true', help='downloads the node\'s file')
 
-# replace -h
-p_replace = subparsers.add_parser('replace-spec', description="Replaces mtf spec file or provider spec file.", help='replace mtf spec file or provider spec file')
-p_replace.add_argument('source_spec', type=file_type, help='source mtf spec file or provider spec file')
+# create -h
+p_create = subparsers.add_parser('create', description="Create new node. ", help='create new node')
+p_create.add_argument('--file', type=file_type, help='path to file upload')
+p_create.add_argument('--attributes', type=file_type, help='path to json attributes file')
 
-# add -h
-p_add = subparsers.add_parser('add-provider', description="Adds provider spec file to a mtf.", help='add new provider')
-p_add.add_argument('source_spec', type=file_type, help='provider spec file to be added to mtf')
-	
-'''
-Old version of the code I'm not fully willing to give up yet.
+# user-create -h
+p_replace = subparsers.add_parser('user-create', description="Create new Shock user", help='create new Shock user')
+p_replace.add_argument('--admin', action='store_true', help='makes new user an admin')
 
-def parseSpec(filename):
-	specFile = open(filename, 'rU')
-	spec = json.load(specFile)
-	specFile.close()
-	return spec
-	
-def parseMtf(args, dirname, filenames):
-	if "providers" in dirname.split('/'):
-		return
-	bn = os.path.basename(dirname)
-	if "%s.spec" % bn in filenames:	
-		fileCount = 0
-		size = 0
-		args[0][bn] = {}
-		args[0][bn]["path"] = dirname
-		args[0][bn]["metadata"] = []
-		args[0][bn]["providers"] = {}
-		for f in filenames:			
-			if f == "%s.spec" % bn:
-				fileCount += 1
-				args[0][bn]["spec"] = parseSpec("%s/%s" % (dirname, f))
-			elif "metadata" in f.split("."):
-				fileCount += 1
-				args[0][bn]["metadata"].append(f)
-		for r, rv in args[0][bn]["spec"]["raw"].iteritems():
-			if rv.has_key("size") and rv["size"]:
-				size += int(rv["size"])
-		for p in args[0][bn]["spec"]["providers"]:
-			spec = parseSpec("%s/providers/%s.spec" % (dirname, p))
-			args[0][bn]["providers"][p] = {"files" : spec["files"]}
-			for f, fv in spec["files"].iteritems():
-				if fv.has_key("size") and fv["size"]:
-					size += int(fv["size"])
-				fileCount += 1
-		args[0][bn]["fileCount"] = fileCount
-		args[0][bn]["size"] = size
-		args[2] += 1	
-		args[1].update(args[2])
-'''	
+# user-get -h
+p_replace = subparsers.add_parser('user-get', description="Get a Shock user details", help='get a Shock user details')
 
-def parseSpec(filename):
-	specFile = open(filename, 'rU')
-	spec = json.load(specFile)
-	size = 0
-	fcount = 0
-	for r, rv in spec["raw"].iteritems():
-		fcount += 1
-		if rv.has_key("size") and rv["size"]:
-			size += int(rv["size"])
-	for p, pv in spec["providers"].iteritems():
-		for f, fv in pv["files"].iteritems():
-			fcount += 1	
-			if fv.has_key("size") and fv["size"]:
-				size += int(fv["size"])
-	spec["size"] = size
-	spec["fileCount"] = fcount
-	specFile.close()
-	return spec	
-					
-def loadMtf(fromDir=False):
-	global MTFPATH
-	mtfCache = {}
-	if not os.path.exists("%s/mtf.cache.json" % MTFPATH) or fromDir:
-		print "Building cache file. This should be quick..."		
-		pbar = ProgressBar(widgets=['Processed: ', Counter(), ' specs (', Timer(), ')'], maxval=1000000).start()
-		
-		#args = [mtfCache, pbar, 0]
-		#os.path.walk(MTFPATH, parseMtf, args)
-		count = 0
-		for s in os.listdir("%s/spec" % MTFPATH):
-			count += 1
-			spec = parseSpec("%s/spec/%s"  % (MTFPATH, s))
-			mtfCache[spec["id"]] = spec
-			pbar.update(count)
-			
-		pbar.maxval = count
-		pbar.finish()
-		cacheFile = open("%s/mtf.cache.json" % MTFPATH, 'w')
-		cacheFile.write(json.dumps(mtfCache))
-		cacheFile.close()		
-	else:
-		cacheFile = open("%s/mtf.cache.json" % MTFPATH, 'rU')
-		mtfCache = json.load(cacheFile)
-		cacheFile.close()
-	return mtfCache	
+# users-list -h
+p_add = subparsers.add_parser('users-list', description="List users. Must be an admin user.", help='list users (admin only)')
 
-def performGet(toDo):
-	global MTFPATH
-	path = "%s/%s" % (toDo["path"], toDo["id"])
-	print "mkdir: %s" % path
-	#os.mkdir(path)
-
-	for d in toDo["mkdir"]:
-		print "mkdir: %s/%s" % (path, d)
-		#os.mkdir("%s/%s" % (path, d))
-
-	for f in toDo["copy"]:
-		#print f
-		des = "%s/%s" % (path, f[0])
-		if f[2]:
-			des = "%s/%s/%s" % (path, f[2], f[0])
-		print "copy: %s/%s to %s" % (MTFPATH, f[0], des)
-		#shutil.copyfile("%s/%s" % (toDo["mtf"]["path"], f[0]), des)
-
-	for f in toDo["download"]:
-		print "download: %s to %s/%s/%s" % (f[2], path, f[1], f[0])	
-		
-		
 def convert_bytes(n):
     K, M, G, T = 1 << 10, 1 << 20, 1 << 30, 1 << 40
     if   n >= T:
