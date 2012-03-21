@@ -8,6 +8,7 @@ if sys.version_info < (2, 7):
     requirements.append('argparse>=1.2.1')
 requirements.append('PrettyTable>=0.5')
 requirements.append('progressbar>=2.2')
+requirements.append('requests>=0.10.7')
 
 setup(
     name='ShockClient',
