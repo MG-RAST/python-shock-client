@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-from restclient import RestClient
+from python_restclient.restclient import RestClient
 
 
 # Example constructor with OAuth
