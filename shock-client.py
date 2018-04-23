@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-from python_restclient.restclient import RestClient
+from restclient.restclient import RestClient
 
 
 # Example constructor with OAuth
@@ -16,7 +16,7 @@ node_id = "6fa12ee7-8cb6-421e-b6ed-02188cf7117b"
 
 
 response = c.put("node/"+node_id+"/acl/public_read", debug=True)
-print(response)
+
 print(response.json())
 
 
